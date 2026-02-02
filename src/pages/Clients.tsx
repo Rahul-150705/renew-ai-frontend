@@ -85,65 +85,91 @@ const Clients: React.FC = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Clients</h1>
             <p className="text-muted-foreground mt-1">Manage your insurance clients</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-primary text-white
-              font-medium hover:opacity-90 transition-all duration-200 shadow-glow"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-primary text-white
+              font-semibold hover:opacity-90 hover:shadow-glow transition-all duration-300 active:scale-[0.98]"
           >
             <FaPlus /> Add Client
           </button>
         </div>
 
+        {/* Stats Summary */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{clients.length}</p>
+          </div>
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground">With Email</p>
+            <p className="text-3xl font-bold text-primary mt-1">
+              {clients.filter(c => c.email).length}
+            </p>
+          </div>
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground">With Address</p>
+            <p className="text-3xl font-bold text-success mt-1">
+              {clients.filter(c => c.address).length}
+            </p>
+          </div>
+        </div>
+
         {/* Clients Grid */}
         {clients.length === 0 ? (
-          <div className="bg-card rounded-xl border border-border p-12 text-center">
-            <FaUser className="text-5xl text-muted-foreground mx-auto mb-4" />
+          <div className="bg-card rounded-2xl border border-border p-16 text-center shadow-sm">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-secondary flex items-center justify-center">
+              <FaUser className="text-4xl text-muted-foreground" />
+            </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">No clients yet</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first client</p>
+            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+              Start building your client base by adding your first client
+            </p>
             <button
               onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-primary text-white
-                font-medium hover:opacity-90 transition-all duration-200"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-primary text-white
+                font-semibold hover:opacity-90 transition-all duration-300"
             >
-              <FaPlus /> Add Client
+              <FaPlus /> Add Your First Client
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {clients.map((client) => (
               <Link
                 key={client.id}
                 to={`/clients/${client.id}`}
-                className="bg-card rounded-xl border border-border p-6 
+                className="group bg-card rounded-2xl border border-border p-6 shadow-sm
                   transition-all duration-300 hover:shadow-lg hover:-translate-y-1
-                  hover:border-primary/50"
+                  hover:border-primary/30"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center
-                    text-xl font-bold text-white flex-shrink-0">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-primary flex items-center justify-center
+                    text-xl font-bold text-white flex-shrink-0 shadow-sm group-hover:shadow-glow transition-all">
                     {client.fullName.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-foreground truncate">{client.fullName}</h3>
-                    <div className="mt-2 space-y-1">
+                    <h3 className="font-semibold text-foreground text-lg truncate group-hover:text-primary transition-colors">
+                      {client.fullName}
+                    </h3>
+                    <div className="mt-3 space-y-2">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <FaEnvelope className="flex-shrink-0" />
+                        <FaEnvelope className="flex-shrink-0 text-primary/60" />
                         <span className="truncate">{client.email}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <FaPhone className="flex-shrink-0" />
+                        <FaPhone className="flex-shrink-0 text-primary/60" />
                         <span>{client.phoneNumber}</span>
                       </div>
                       {client.address && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <FaMapMarkerAlt className="flex-shrink-0" />
+                          <FaMapMarkerAlt className="flex-shrink-0 text-primary/60" />
                           <span className="truncate">{client.address}</span>
                         </div>
                       )}

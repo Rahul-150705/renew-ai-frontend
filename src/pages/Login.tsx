@@ -48,23 +48,27 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-md">
-        <div className="bg-card rounded-2xl shadow-lg p-8 border border-border">
+        {/* Decorative elements */}
+        <div className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        
+        <div className="relative bg-card rounded-2xl shadow-xl p-8 border border-border/50">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow">
               <FaShieldAlt className="text-3xl text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Renew AI</h1>
-            <p className="text-muted-foreground mt-1">Insurance Renewal Automation Platform</p>
+            <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
+            <p className="text-muted-foreground mt-1">Sign in to Renew AI Portal</p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label htmlFor="username" className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <FaUser className="text-muted-foreground" />
+                <FaUser className="text-primary" />
                 Username
               </label>
               <input
@@ -75,16 +79,16 @@ const Login: React.FC = () => {
                 onChange={handleChange}
                 placeholder="Enter your username"
                 disabled={loading}
-                className="w-full px-4 py-3 rounded-lg bg-input border border-border
+                className="w-full px-4 py-3.5 rounded-xl bg-secondary/50 border border-border
                   text-foreground placeholder:text-muted-foreground
-                  focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                  focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary focus:bg-card
                   transition-all duration-200 disabled:opacity-50"
               />
             </div>
 
             <div className="space-y-2">
               <label htmlFor="password" className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <FaLock className="text-muted-foreground" />
+                <FaLock className="text-primary" />
                 Password
               </label>
               <input
@@ -95,9 +99,9 @@ const Login: React.FC = () => {
                 onChange={handleChange}
                 placeholder="Enter your password"
                 disabled={loading}
-                className="w-full px-4 py-3 rounded-lg bg-input border border-border
+                className="w-full px-4 py-3.5 rounded-xl bg-secondary/50 border border-border
                   text-foreground placeholder:text-muted-foreground
-                  focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                  focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary focus:bg-card
                   transition-all duration-200 disabled:opacity-50"
               />
             </div>
@@ -105,24 +109,33 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-lg bg-gradient-primary text-white font-semibold
-                hover:opacity-90 transition-all duration-200 disabled:opacity-50
-                shadow-glow"
+              className="w-full py-3.5 rounded-xl bg-gradient-primary text-white font-semibold
+                hover:opacity-90 hover:shadow-glow transition-all duration-300 disabled:opacity-50
+                active:scale-[0.98]"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Signing in...
+                </span>
+              ) : (
+                'Sign In'
+              )}
             </button>
           </form>
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-border text-center">
-            <p className="text-sm text-muted-foreground mb-2">Demo Credentials:</p>
-            <p className="text-sm text-foreground">
-              <strong>Username:</strong> agent1 | <strong>Password:</strong> password123
-            </p>
+            <div className="inline-block px-4 py-2 rounded-lg bg-secondary/50 text-sm">
+              <p className="text-muted-foreground mb-1">Demo Credentials</p>
+              <p className="text-foreground font-medium">
+                agent1 / password123
+              </p>
+            </div>
             <p className="mt-4 text-sm text-muted-foreground">
               Don't have an account?{' '}
               <Link to="/signup" className="text-primary font-semibold hover:underline">
-                Sign up here
+                Create one
               </Link>
             </p>
           </div>
