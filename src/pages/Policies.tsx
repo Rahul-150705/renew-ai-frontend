@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FaFileContract, FaUser, FaClock, FaCheckCircle, FaPlus, FaEnvelope, FaPhone, FaTimes, FaTrash } from 'react-icons/fa';
+import { FaFileContract, FaUser, FaClock, FaCheckCircle, FaPlus, FaEnvelope, FaPhone, FaTimes, FaTrash, FaFileUpload, FaFilePdf, FaMagic } from 'react-icons/fa';
 import { policyAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
@@ -31,6 +31,12 @@ const Policies: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [policyToDelete, setPolicyToDelete] = useState<Policy | null>(null);
   const [deleting, setDeleting] = useState(false);
+  
+  // PDF Upload states
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [extractionConfidence, setExtractionConfidence] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     clientFullName: '',
@@ -77,6 +83,69 @@ const Policies: React.FC = () => {
     });
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        toast.error('Please upload a PDF file');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size must be less than 10MB');
+        return;
+      }
+      setUploadedFile(file);
+      handlePdfUpload(file);
+    }
+  };
+
+  const handlePdfUpload = async (file: File) => {
+    setExtracting(true);
+    try {
+      const response = await policyAPI.extractFromPdf(file);
+      const extractedData = response.data;
+
+      if (extractedData.success) {
+        // Auto-fill form with extracted data
+        setFormData({
+          clientFullName: extractedData.clientFullName || '',
+          clientEmail: extractedData.clientEmail || '',
+          clientPhoneNumber: extractedData.clientPhoneNumber || '',
+          clientAddress: extractedData.clientAddress || '',
+          policyNumber: extractedData.policyNumber || '',
+          policyType: extractedData.policyType || 'LIFE',
+          startDate: extractedData.startDate || '',
+          expiryDate: extractedData.expiryDate || '',
+          premium: extractedData.premium || '',
+          premiumFrequency: extractedData.premiumFrequency || 'YEARLY',
+          policyDescription: extractedData.policyDescription || '',
+        });
+
+        setExtractionConfidence(extractedData.confidence);
+        
+        toast.success(
+          `Data extracted successfully! ${extractedData.message}`,
+          { autoClose: 5000 }
+        );
+      } else {
+        toast.error(`Failed to extract data: ${extractedData.message}`);
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Failed to extract data from PDF';
+      toast.error(errorMessage);
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setUploadedFile(null);
+    setExtractionConfidence(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -88,27 +157,31 @@ const Policies: React.FC = () => {
     try {
       await policyAPI.createPolicyWithClient(policyData);
       toast.success('Policy created successfully!');
-      setShowModal(false);
-      
-      setFormData({
-        clientFullName: '',
-        clientEmail: '',
-        clientPhoneNumber: '',
-        clientAddress: '',
-        policyNumber: '',
-        policyType: 'LIFE',
-        startDate: '',
-        expiryDate: '',
-        premium: '',
-        premiumFrequency: 'YEARLY',
-        policyDescription: '',
-      });
-      
+      handleCloseModal();
       fetchAllPolicies();
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Failed to create policy';
       toast.error(errorMessage);
     }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setUploadedFile(null);
+    setExtractionConfidence(null);
+    setFormData({
+      clientFullName: '',
+      clientEmail: '',
+      clientPhoneNumber: '',
+      clientAddress: '',
+      policyNumber: '',
+      policyType: 'LIFE',
+      startDate: '',
+      expiryDate: '',
+      premium: '',
+      premiumFrequency: 'YEARLY',
+      policyDescription: '',
+    });
   };
 
   const handleDeleteClick = (policy: Policy) => {
@@ -452,11 +525,11 @@ const Policies: React.FC = () => {
           </div>
         )}
 
-        {/* Add Policy Modal */}
+        {/* Add Policy Modal with PDF Upload */}
         {showModal && (
           <div 
             className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
-            onClick={() => setShowModal(false)}
+            onClick={handleCloseModal}
           >
             <div 
               className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-card rounded-2xl border border-border shadow-lg"
@@ -465,7 +538,7 @@ const Policies: React.FC = () => {
               <div className="flex items-center justify-between p-6 border-b border-border">
                 <h2 className="text-xl font-bold text-foreground">Add New Policy</h2>
                 <button 
-                  onClick={() => setShowModal(false)}
+                  onClick={handleCloseModal}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground
                     hover:bg-secondary hover:text-foreground transition-all"
                 >
@@ -474,6 +547,80 @@ const Policies: React.FC = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                {/* PDF Upload Section */}
+                <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 bg-primary/5">
+                  <div className="text-center">
+                    <FaMagic className="text-4xl text-primary mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      AI-Powered Policy Upload
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Upload a PDF policy document and let AI extract the information automatically
+                    </p>
+
+                    {!uploadedFile ? (
+                      <>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="application/pdf"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg 
+                            bg-gradient-primary text-white font-medium hover:opacity-90 
+                            transition-all shadow-glow"
+                        >
+                          <FaFileUpload /> Upload Policy PDF
+                        </button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Max file size: 10MB
+                        </p>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between p-4 rounded-lg bg-background border border-border">
+                        <div className="flex items-center gap-3">
+                          <FaFilePdf className="text-2xl text-destructive" />
+                          <div className="text-left">
+                            <p className="text-sm font-medium text-foreground">
+                              {uploadedFile.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {(uploadedFile.size / 1024).toFixed(2)} KB
+                            </p>
+                            {extractionConfidence !== null && (
+                              <p className="text-xs text-success mt-1">
+                                ✓ Extraction confidence: {(extractionConfidence * 100).toFixed(0)}%
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveFile}
+                          disabled={extracting}
+                          className="p-2 rounded-lg text-destructive hover:bg-destructive/10 
+                            transition-all disabled:opacity-50"
+                        >
+                          <FaTimes />
+                        </button>
+                      </div>
+                    )}
+
+                    {extracting && (
+                      <div className="flex items-center justify-center gap-3 mt-4 p-4 rounded-lg bg-primary/10">
+                        <div className="spinner" />
+                        <p className="text-sm text-primary font-medium">
+                          Extracting data using AI...
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Client Information */}
                 <div>
                   <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
@@ -653,7 +800,7 @@ const Policies: React.FC = () => {
                 <div className="flex justify-end gap-3 pt-4 border-t border-border">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
+                    onClick={handleCloseModal}
                     className="px-4 py-2 rounded-lg bg-secondary text-foreground font-medium
                       hover:bg-secondary/80 transition-all"
                   >

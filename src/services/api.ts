@@ -74,6 +74,18 @@ export const policyAPI = {
     api.put(`/policies/${id}/status`, { status }),
   
   deletePolicy: (id: number) => api.delete(`/policies/${id}`),
+  
+  // PDF Upload and extraction
+  extractFromPdf: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return api.post('/policies/extract-from-pdf', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 };
 
 // Client API
