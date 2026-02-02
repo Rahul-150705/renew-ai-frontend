@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FaFileContract, FaUser, FaClock, FaCheckCircle, FaPlus, FaEnvelope, FaPhone, FaTimes, FaTrash, FaFileUpload, FaFilePdf, FaBrain } from 'react-icons/fa';
+import { FaFileContract, FaUser, FaClock, FaCheckCircle, FaPlus, FaEnvelope, FaPhone, FaTimes, FaTrash, FaFileUpload, FaFilePdf, FaBrain, FaSearch, FaFilter, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { policyAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
+import { Input } from '@/components/ui/input';
 import Layout from '../components/Layout';
 
 interface Policy {
@@ -22,6 +23,9 @@ interface Policy {
   clientAddress?: string;
 }
 
+const POLICY_TYPES = ['LIFE', 'HEALTH', 'VEHICLE', 'HOME', 'TRAVEL', 'BUSINESS'];
+const PREMIUM_FREQUENCIES = ['MONTHLY', 'QUARTERLY', 'YEARLY'];
+
 const Policies: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -31,6 +35,18 @@ const Policies: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [policyToDelete, setPolicyToDelete] = useState<Policy | null>(null);
   const [deleting, setDeleting] = useState(false);
+  
+  // Search & Advanced Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    policyType: '',
+    premiumFrequency: '',
+    minPremium: '',
+    maxPremium: '',
+    expiryDateFrom: '',
+    expiryDateTo: '',
+  });
   
   // PDF Upload states
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -231,16 +247,71 @@ const Policies: React.FC = () => {
     return colors[status] || 'bg-muted';
   };
 
-  const filteredPolicies = policies.filter(policy => {
-    if (filter === 'ALL') return true;
-    if (filter === 'ACTIVE') return policy.policyStatus === 'ACTIVE';
-    if (filter === 'EXPIRING') {
-      const daysUntilExpiry = getDaysUntilExpiry(policy.expiryDate);
-      return policy.policyStatus === 'ACTIVE' && daysUntilExpiry <= 30 && daysUntilExpiry > 0;
-    }
-    if (filter === 'EXPIRED') return policy.policyStatus === 'EXPIRED';
-    return true;
-  });
+  const filteredPolicies = useMemo(() => {
+    return policies.filter(policy => {
+      // Status filter
+      if (filter === 'ACTIVE' && policy.policyStatus !== 'ACTIVE') return false;
+      if (filter === 'EXPIRING') {
+        const daysUntilExpiry = getDaysUntilExpiry(policy.expiryDate);
+        if (!(policy.policyStatus === 'ACTIVE' && daysUntilExpiry <= 30 && daysUntilExpiry > 0)) return false;
+      }
+      if (filter === 'EXPIRED' && policy.policyStatus !== 'EXPIRED') return false;
+
+      // Search query - searches across multiple fields
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const searchableFields = [
+          policy.policyNumber,
+          policy.clientFullName,
+          policy.clientEmail,
+          policy.clientPhoneNumber,
+          policy.policyType,
+          policy.policyDescription || '',
+        ].map(f => f.toLowerCase());
+        
+        if (!searchableFields.some(field => field.includes(query))) return false;
+      }
+
+      // Advanced filters
+      if (advancedFilters.policyType && policy.policyType !== advancedFilters.policyType) return false;
+      if (advancedFilters.premiumFrequency && policy.premiumFrequency !== advancedFilters.premiumFrequency) return false;
+      
+      if (advancedFilters.minPremium) {
+        const minPremium = parseFloat(advancedFilters.minPremium);
+        if (!isNaN(minPremium) && policy.premium < minPremium) return false;
+      }
+      
+      if (advancedFilters.maxPremium) {
+        const maxPremium = parseFloat(advancedFilters.maxPremium);
+        if (!isNaN(maxPremium) && policy.premium > maxPremium) return false;
+      }
+      
+      if (advancedFilters.expiryDateFrom) {
+        const fromDate = new Date(advancedFilters.expiryDateFrom);
+        if (new Date(policy.expiryDate) < fromDate) return false;
+      }
+      
+      if (advancedFilters.expiryDateTo) {
+        const toDate = new Date(advancedFilters.expiryDateTo);
+        if (new Date(policy.expiryDate) > toDate) return false;
+      }
+
+      return true;
+    });
+  }, [policies, filter, searchQuery, advancedFilters]);
+
+  const clearAdvancedFilters = () => {
+    setAdvancedFilters({
+      policyType: '',
+      premiumFrequency: '',
+      minPremium: '',
+      maxPremium: '',
+      expiryDateFrom: '',
+      expiryDateTo: '',
+    });
+  };
+
+  const hasActiveAdvancedFilters = Object.values(advancedFilters).some(v => v !== '');
 
   const stats = {
     total: policies.length,
@@ -329,23 +400,176 @@ const Policies: React.FC = () => {
           </button>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-2 flex-wrap">
-          {['ALL', 'ACTIVE', 'EXPIRING', 'EXPIRED'].map((f) => (
+        {/* Search & Filter Section */}
+        <div className="bg-card rounded-xl border border-border p-4 space-y-4">
+          {/* Search Bar */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by policy number, client name, email, phone, or type..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-secondary border-border"
+              />
+            </div>
             <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all
-                ${filter === f 
-                  ? 'bg-primary text-primary-foreground' 
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all
+                ${showAdvancedFilters || hasActiveAdvancedFilters
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-secondary text-muted-foreground hover:text-foreground'}`}
             >
-              {f === 'ALL' ? `All (${stats.total})` : 
-               f === 'ACTIVE' ? `Active (${stats.active})` :
-               f === 'EXPIRING' ? `Expiring Soon (${stats.expiring})` :
-               `Expired (${stats.expired})`}
+              <FaFilter />
+              Advanced Filters
+              {hasActiveAdvancedFilters && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-white/20 rounded-full">
+                  {Object.values(advancedFilters).filter(v => v !== '').length}
+                </span>
+              )}
+              {showAdvancedFilters ? <FaChevronUp /> : <FaChevronDown />}
             </button>
-          ))}
+          </div>
+
+          {/* Advanced Filters Panel */}
+          {showAdvancedFilters && (
+            <div className="pt-4 border-t border-border space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Policy Type */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    Policy Type
+                  </label>
+                  <select
+                    value={advancedFilters.policyType}
+                    onChange={(e) => setAdvancedFilters(prev => ({ ...prev, policyType: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-foreground
+                      focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">All Types</option>
+                    {POLICY_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Premium Frequency */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    Premium Frequency
+                  </label>
+                  <select
+                    value={advancedFilters.premiumFrequency}
+                    onChange={(e) => setAdvancedFilters(prev => ({ ...prev, premiumFrequency: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-foreground
+                      focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">All Frequencies</option>
+                    {PREMIUM_FREQUENCIES.map(freq => (
+                      <option key={freq} value={freq}>{freq}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Premium Range */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    Premium Range (₹)
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      type="number"
+                      placeholder="Min"
+                      value={advancedFilters.minPremium}
+                      onChange={(e) => setAdvancedFilters(prev => ({ ...prev, minPremium: e.target.value }))}
+                      className="bg-secondary border-border"
+                    />
+                    <span className="text-muted-foreground">-</span>
+                    <Input
+                      type="number"
+                      placeholder="Max"
+                      value={advancedFilters.maxPremium}
+                      onChange={(e) => setAdvancedFilters(prev => ({ ...prev, maxPremium: e.target.value }))}
+                      className="bg-secondary border-border"
+                    />
+                  </div>
+                </div>
+
+                {/* Expiry Date From */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    Expiry Date From
+                  </label>
+                  <Input
+                    type="date"
+                    value={advancedFilters.expiryDateFrom}
+                    onChange={(e) => setAdvancedFilters(prev => ({ ...prev, expiryDateFrom: e.target.value }))}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+
+                {/* Expiry Date To */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    Expiry Date To
+                  </label>
+                  <Input
+                    type="date"
+                    value={advancedFilters.expiryDateTo}
+                    onChange={(e) => setAdvancedFilters(prev => ({ ...prev, expiryDateTo: e.target.value }))}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+
+                {/* Clear Button */}
+                <div className="flex items-end">
+                  <button
+                    onClick={clearAdvancedFilters}
+                    disabled={!hasActiveAdvancedFilters}
+                    className="px-4 py-2 rounded-lg font-medium text-sm bg-destructive/10 text-destructive
+                      hover:bg-destructive/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Status Filter Tabs */}
+          <div className="flex gap-2 flex-wrap pt-2">
+            {['ALL', 'ACTIVE', 'EXPIRING', 'EXPIRED'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all
+                  ${filter === f 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-secondary text-muted-foreground hover:text-foreground'}`}
+              >
+                {f === 'ALL' ? `All (${stats.total})` : 
+                 f === 'ACTIVE' ? `Active (${stats.active})` :
+                 f === 'EXPIRING' ? `Expiring Soon (${stats.expiring})` :
+                 `Expired (${stats.expired})`}
+              </button>
+            ))}
+          </div>
+
+          {/* Active Filters Summary */}
+          {(searchQuery || hasActiveAdvancedFilters) && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Showing {filteredPolicies.length} of {policies.length} policies</span>
+              {searchQuery && (
+                <span className="px-2 py-1 bg-primary/10 text-primary rounded-full flex items-center gap-1">
+                  Search: "{searchQuery}"
+                  <button onClick={() => setSearchQuery('')} className="hover:text-foreground">
+                    <FaTimes className="text-xs" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Policies Table */}
