@@ -1,0 +1,93 @@
+import axios from 'axios';
+
+// Base API URL
+const API_BASE_URL = 'http://localhost:8080/api';
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add JWT token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth API
+export const authAPI = {
+  login: (credentials: { username: string; password: string }) => 
+    api.post('/auth/login', credentials),
+  signup: (userData: { username: string; password: string; fullName: string; email: string }) =>
+    api.post('/auth/signup', userData),
+  health: () => api.get('/auth/health'),
+};
+
+// Policy API
+export const policyAPI = {
+  createPolicyWithClient: (policyData: {
+    clientFullName: string;
+    clientEmail: string;
+    clientPhoneNumber: string;
+    clientAddress?: string;
+    policyNumber: string;
+    policyType: string;
+    startDate: string;
+    expiryDate: string;
+    premium: number;
+    premiumFrequency: string;
+    policyDescription?: string;
+  }) => api.post('/policies/create', policyData),
+  
+  getAllMyPolicies: () => api.get('/policies'),
+  
+  getPolicyById: (id: number) => api.get(`/policies/${id}`),
+  
+  updatePolicyStatus: (id: number, status: string) => 
+    api.put(`/policies/${id}/status`, { status }),
+  
+  deletePolicy: (id: number) => api.delete(`/policies/${id}`),
+};
+
+// Client API
+export const clientAPI = {
+  getMyClients: () => api.get('/clients'),
+  
+  getClientById: (id: string) => api.get(`/clients/${id}`),
+  
+  createClient: (clientData: {
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    address?: string;
+  }) => api.post('/clients', clientData),
+};
+
+export default api;

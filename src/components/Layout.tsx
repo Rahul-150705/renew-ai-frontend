@@ -1,0 +1,105 @@
+import React, { ReactNode } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { FaHome, FaFileContract, FaSignOutAlt, FaUser, FaShieldAlt } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
+
+interface LayoutProps {
+  children: ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    toast.info('Logged out successfully');
+    navigate('/login');
+  };
+
+  const navItems = [
+    { path: '/', icon: FaHome, label: 'Dashboard' },
+    { path: '/policies', icon: FaFileContract, label: 'Policies' },
+  ];
+
+  return (
+    <div className="flex min-h-screen">
+      {/* Sidebar */}
+      <aside className="w-64 bg-sidebar flex flex-col border-r border-sidebar-border">
+        {/* Logo */}
+        <div className="p-6 border-b border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center">
+              <FaShieldAlt className="text-white text-lg" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Renew AI</h2>
+              <p className="text-xs text-muted-foreground">Agent Portal</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4">
+          <ul className="space-y-2">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <li key={item.path}>
+                  <Link
+                    to={item.path}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
+                      ${isActive 
+                        ? 'bg-gradient-primary text-white shadow-glow' 
+                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                      }`}
+                  >
+                    <item.icon className="text-lg" />
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* User Info & Logout */}
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3 mb-4 p-3 rounded-lg bg-sidebar-accent">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+              <FaUser className="text-primary-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">
+                {user?.fullName}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.email}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg
+              text-muted-foreground hover:text-destructive hover:bg-destructive/10
+              transition-all duration-200"
+          >
+            <FaSignOutAlt />
+            <span className="font-medium">Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">
+        <div className="p-8 animate-fade-in">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Layout;
