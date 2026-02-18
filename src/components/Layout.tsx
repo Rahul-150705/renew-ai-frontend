@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaHome, FaFileContract, FaSignOutAlt, FaUser, FaShieldAlt, FaUsers } from 'react-icons/fa';
+import { FaHome, FaFileContract, FaSignOutAlt, FaUser, FaShieldAlt } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -22,7 +22,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navItems = [
     { path: '/', icon: FaHome, label: 'Dashboard' },
     { path: '/policies', icon: FaFileContract, label: 'Policies' },
-    { path: '/clients', icon: FaUsers, label: 'Clients' },
   ];
 
   return (

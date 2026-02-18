@@ -164,7 +164,7 @@ const Dashboard: React.FC = () => {
             </Link>
 
             <Link
-              to="/clients"
+              to="/policies?action=add"
               className="bg-card rounded-2xl border border-border p-6 shadow-sm
                 transition-all duration-300 hover:shadow-lg hover:-translate-y-1
                 hover:border-success/30 group"
@@ -176,9 +176,9 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-foreground text-lg group-hover:text-success transition-colors">
-                    Manage Clients
+                    Add New Policy
                   </h3>
-                  <p className="text-sm text-muted-foreground">View and add client profiles</p>
+                  <p className="text-sm text-muted-foreground">Create a new insurance policy</p>
                 </div>
               </div>
             </Link>

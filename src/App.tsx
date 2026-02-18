@@ -8,8 +8,6 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Policies from './pages/Policies';
-import Clients from './pages/Clients';
-import ClientDetails from './pages/ClientDetails';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -48,22 +46,6 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Policies />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/clients"
-          element={
-            <ProtectedRoute>
-              <Clients />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/clients/:clientId"
-          element={
-            <ProtectedRoute>
-              <ClientDetails />
             </ProtectedRoute>
           }
         />
